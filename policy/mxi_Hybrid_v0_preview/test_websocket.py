@@ -20,7 +20,7 @@ class TransportDouble:
             image=camera['color']
             assert isinstance(image,np.ndarray) and image.dtype==np.uint8
             assert image[...,0].mean()>240 and image[...,2].mean()<10
-        self.frames.append(obs['frame']);return {}
+        self.frames.append(obs['state']['test_step']);return {}
     def propose_actions(self,obs):
         return {'actions':[{'test_only':np.ones(1,dtype=np.float32)}]*3,
                 'receipt':{'episode_id':'test','chunk_id':1}}
@@ -36,7 +36,7 @@ class TransportEnvironment:
     def get_obs(self):
         rgb=np.zeros((16,16,3),dtype=np.uint8);rgb[...,0]=255
         encoded=encode_image_bit(rgb)
-        return {'frame':self.n,'vision':{
+        return {'state':{'test_step':self.n},'instruction':'test instruction','vision':{
             'cam_head':{'color':rgb},'cam_left_wrist':{'color':np.array(bytearray(encoded),dtype=np.uint8)},
             'cam_right_wrist':{'color':encoded}}}
     def is_episode_end(self):return self.n==3

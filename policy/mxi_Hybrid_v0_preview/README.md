@@ -62,6 +62,10 @@ substituted. KEEP regenerates actions. No teacher/script/zero-action fallback is
 implemented. The official debug environment's own 20-step budget is used only
 when `EVAL_ENV_TYPE=debug`; it is not a simulator result.
 
+The client forwards only the three RGB streams, raw robot state, original task
+instruction and transport identifiers. Depth, object poses, simulator annotations
+and task metrics are not supplied to the policy.
+
 Plain and encoded-image debug checks must both be run before submission:
 
 ```bash
@@ -99,7 +103,12 @@ prompt injection is enabled. Robot dimensions use XPolicyLab's shared lookup.
 
 ## Notes
 
-Status: implementation in preparation, not a certified closed-loop deployment.
-No debug/physical score is claimed until actual validation evidence is attached.
+Status: pre-submission, not a certified closed-loop deployment.
+On 2026-11-02 the complete s4000 model loaded and passed two official-WebSocket
+debug episodes (20 executed actions each), using plain and encoded RGB inputs.
+These used real model weights, not a policy test double, and are protocol checks,
+not task scores. The first simulator attempt failed during GPU/camera
+initialization before any robot action; bounded physical revalidation is pending.
+No simulator success or leaderboard score is claimed.
 The publicly contributed adapter follows XPolicyLab's Apache-2.0 license; core
 implementation and weights are separate artifacts with their own terms.

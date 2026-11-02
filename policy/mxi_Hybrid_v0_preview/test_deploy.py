@@ -12,7 +12,10 @@ class Env:
     step_lim = 26
     def __init__(self,end=26,fail_at=None): self.n=0; self.end=end; self.fail_at=fail_at
     def is_episode_end(self): return self.n >= self.end
-    def get_obs(self): return {'frame':self.n}
+    def get_obs(self):
+        return {'state':{'test_step':self.n},'instruction':'test instruction',
+                'simulator_truth':'must_not_be_sent','vision':{k:{'color':None,'depth':'excluded'}
+                for k in ('cam_head','cam_left_wrist','cam_right_wrist')}}
     def take_action(self, action):
         if self.n==self.fail_at: raise RuntimeError('execution failure')
         self.n+=1
@@ -34,7 +37,11 @@ class DeploymentTests(unittest.TestCase):
     def test_every_step_observed_once_and_budget_truncates(self):
         env,client=Env(),Client()
         deploy.eval_one_episode(env,client)
-        self.assertEqual([o['frame'] for n,o in client.events if n=='update_obs'],list(range(26)))
+        observations=[o for n,o in client.events if n=='update_obs']
+        self.assertEqual([o['state']['test_step'] for o in observations],list(range(26)))
+        for obs in observations:
+            self.assertNotIn('simulator_truth',obs)
+            self.assertEqual(set(obs['vision']['cam_head']),{'color'})
         self.assertEqual([o['executed_steps'] for n,o in client.events if n=='acknowledge'],[24,2])
         self.assertEqual(client.events[-1][0],'close_client')
 
