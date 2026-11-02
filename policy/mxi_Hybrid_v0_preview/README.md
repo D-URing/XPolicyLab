@@ -10,6 +10,25 @@ Shared conventions — argument meanings, checkpoint naming, split-machine deplo
 
 ## Installation
 
+For the private S4000 handoff, prefer the complete, hash-verified delivery below.
+It contains the full joint model, base assets, normalization, packaged MXI core,
+runtime and pinned XPolicyLab integration; no extra model download is required.
+
+```bash
+# Run in the downloaded delivery directory, after download_hf.py verifies it.
+python3 verify.py
+python3 install_runtime.py
+```
+
+The runtime installs at `/opt/mxi/runtime` and requires Linux x86_64 compatible
+with Ubuntu 22.04, a working NVIDIA container runtime/driver compatible with
+Torch 2.11.0+cu130, and permission to create that prefix. Validation used a 96 GB
+GPU; smaller devices are not certified. The simulator/environment is supplied
+by the evaluator, not by this package. Follow `PRIVATE_DELIVERY.txt` for details.
+
+The alternative wheel installation below is for an already provisioned matching
+environment, not a substitute for its GPU and dependency requirements:
+
 Use the evaluator-provided, versioned inference environment and MXI wheel. Its
 checksum is delivered separately through the authorized evaluation channel.
 No public artifact URL or model redistribution permission is implied.
@@ -42,13 +61,23 @@ date or approval has been assumed on the authors' behalf.
 
 ## Evaluation
 
+Use this adapter at upstream XPolicyLab revision
+`0075cc96a1bf24c5d66a4a3a5e29eae6d739fef3` plus the MXI adapter changes. The
+XPolicyLab checkout must live inside the evaluator's benchmark workspace with
+its normal sibling `env_cfg/`; do not replace that with a guessed robot config.
+
 ```bash
-bash eval.sh RoboDojo stack_bowls /path/to/authorized/mxi-s4000 arx_x5 ee 1 \
-  0 1 <policy_conda_env> <simulator_conda_env>
+cd XPolicyLab/policy/mxi_Hybrid_v0_preview
+bash eval.sh RoboDojo stack_bowls /path/to/delivery/model arx_x5 ee 1 \
+  0 1 /opt/mxi/runtime <simulator_conda_env>
 ```
 
 `ckpt_name` resolves through the official checkpoint resolver and points to the
-deployment bundle, not a single action file. Supported: `arx_x5`, `ee`,
+delivery's **model subdirectory**, not its top-level directory or a single action
+file. Policy environment accepts a conda name, a directory containing
+`bin/python`, or an executable Python path. The simulator argument remains a
+conda environment name, as required by the official client scripts.
+Supported: `arx_x5`, `ee`,
 `eval_batch=false`. Each server runs one episode at a time; scale with independent
 servers, not interleaved sessions in one model. `MXI_OUTPUT_ROOT` sets the policy
 decision-log directory (default `./mxi-results`). Official scores/videos remain
@@ -66,11 +95,11 @@ The client forwards only the three RGB streams, raw robot state, original task
 instruction and transport identifiers. Depth, object poses, simulator annotations
 and task metrics are not supplied to the policy.
 
-Plain and encoded-image debug checks must both be run before submission:
+Plain and encoded-image debug checks on the recipient's environment:
 
 ```bash
-EVAL_ENV_TYPE=debug bash eval.sh RoboDojo stack_bowls /path/to/authorized/mxi-s4000 arx_x5 ee 1 0 0 <policy_conda_env> <client_conda_env>
-DEBUG_OBS_ENCODED=1 EVAL_ENV_TYPE=debug bash eval.sh RoboDojo stack_bowls /path/to/authorized/mxi-s4000 arx_x5 ee 1 0 0 <policy_conda_env> <client_conda_env>
+EVAL_ENV_TYPE=debug bash eval.sh RoboDojo stack_bowls /path/to/delivery/model arx_x5 ee 1 0 0 /opt/mxi/runtime <client_conda_env>
+DEBUG_OBS_ENCODED=1 EVAL_ENV_TYPE=debug bash eval.sh RoboDojo stack_bowls /path/to/delivery/model arx_x5 ee 1 0 0 /opt/mxi/runtime <client_conda_env>
 ```
 
 ## Model Assets
@@ -84,12 +113,28 @@ loading only the action adapter is not supported.
 An authorized evaluator can download a supplied bundle with:
 
 ```bash
+# Preferred: private Hugging Face repository, once access is provisioned.
+# Install huggingface_hub in a download-only environment, not the policy runtime.
+hf auth login
+python download_hf.py --repo-id <authorized-owner>/<private-model-repo> \
+  --revision <exact-40-character-commit> \
+  --inventory-sha256 fb23b6be2a189719b9617b693793079c54b5486aa49df0d0c42ed7fabe067cee \
+  --output /path/to/new-delivery-directory
+
+# Alternative: a separately supplied single HTTPS archive.
 # Set MXI_ARTIFACT_URL privately to the issued HTTPS download URL.
 python download_checkpoint.py --output mxi-s4000.bundle --sha256 <issued-sha256>
 ```
 
-The downloader never prints the signed URL, refuses redirects/overwrites, and
-checks the complete download before installation. Access is evaluation-only;
+The HF repository and immutable revision are supplied separately; no uploaded
+repository or access grant is implied by these placeholders. Authenticate with
+the recipient's authorized account/token; never share an owner's write token.
+A private organization repository with evaluator read access is preferred.
+The HF downloader resumes only the same repo/revision/inventory identity,
+downloads exact inventoried files, and verifies every SHA-256. It never executes
+downloaded code. Its eight offline tests are not a live HF transfer test.
+The HTTPS downloader never prints the signed URL, refuses redirects/overwrites,
+and checks the complete archive before installation. Access is evaluation-only;
 the public adapter's license does not grant rights to model assets.
 
 ## Configuration
@@ -100,6 +145,8 @@ at most 24; visual history 8, stride 25, episode anchor preserved. The CLI seed
 selects the environment trial; it does not silently change the native sampler.
 Full task text remains the video/action branch condition. No extra task-rule
 prompt injection is enabled. Robot dimensions use XPolicyLab's shared lookup.
+`request_timeout_s: 300` is the client RPC response timeout, not an episode
+wall-clock cutoff or a substitute for the official step budget.
 
 ## Notes
 
@@ -120,7 +167,11 @@ This is a one-instance engineering acceptance, not a leaderboard score or proof
 of broad task performance. It used the pinned official server and client loop
 through a private reproducible acceptance runner; the generic shell entrypoint
 has not separately been certified in a clean evaluator environment. Fixed-input
-original-versus-exported numerical regression, portable artifact delivery and
-maintainer approval remain outstanding. No official application has been filed.
+original-versus-exported numerical regression subsequently passed on one fixed
+real observation repeated twice (decisions equal, action maximum absolute error
+zero); a clean-container packaged-runtime run reproduced those outputs exactly.
+The model/runtime package is materialized and locally validated. Recipient
+download/access, their environment acceptance, and any publication agreement
+remain outstanding. No official leaderboard application has been filed.
 The publicly contributed adapter follows XPolicyLab's Apache-2.0 license; core
 implementation and weights are separate artifacts with their own terms.
