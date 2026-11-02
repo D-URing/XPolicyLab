@@ -107,8 +107,20 @@ Status: pre-submission, not a certified closed-loop deployment.
 On 2026-11-02 the complete s4000 model loaded and passed two official-WebSocket
 debug episodes (20 executed actions each), using plain and encoded RGB inputs.
 These used real model weights, not a policy test double, and are protocol checks,
-not task scores. The first simulator attempt failed during GPU/camera
-initialization before any robot action; bounded physical revalidation is pending.
-No simulator success or leaderboard score is claimed.
+not task scores. Two infrastructure failures were retained: renderer/GPU
+initialization and a simulator CLI abbreviation conflict, both before any robot
+action. After correcting GPU selection, writable Kit cache paths and argument
+parsing in a separate simulator snapshot, one bounded `stack_blocks` rollout
+(seed 0, layout 0) completed successfully: official Q=1.0, 250 executed actions
+against a 550-step budget, 11 decision/receipt pairs, and three unedited official
+videos of 251 frames each. The terminal receipt correctly acknowledged only 10
+actions from the final 24-action chunk. There were no policy/protocol errors.
+
+This is a one-instance engineering acceptance, not a leaderboard score or proof
+of broad task performance. It used the pinned official server and client loop
+through a private reproducible acceptance runner; the generic shell entrypoint
+has not separately been certified in a clean evaluator environment. Fixed-input
+original-versus-exported numerical regression, portable artifact delivery and
+maintainer approval remain outstanding. No official application has been filed.
 The publicly contributed adapter follows XPolicyLab's Apache-2.0 license; core
 implementation and weights are separate artifacts with their own terms.
